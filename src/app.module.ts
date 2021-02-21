@@ -3,6 +3,13 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from './jwt/jwt.module';
+import { CommonModule } from './common/common.module';
+import { MailModule } from './mail/mail.module';
+import * as Joi from 'joi';
+import { User } from './users/entities/user.entity';
+import { Verification } from './users/entities/verification.entity';
 
 @Module({
   imports: [
@@ -10,7 +17,18 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
       ignoreEnvFile: process.env.NODE_ENV === "production",      
       envFilePath: process.env.NODE_ENV === "dev" ? ".env.dev" : ".env.test",
-        
+      validationSchema: Joi.object({
+        NODE_ENV: Joi.string().valid('dev','production','test').required(),
+        DB_HOST:Joi.string().required(),
+        DB_USER:Joi.string().required(),
+        DB_PORT: Joi.string().required(),
+        DB_NAME:Joi.string().required(),
+        DB_PW :Joi.string().required(),
+        PRIVATE_KEY: Joi.string().required(),
+        MAILGUN_API_KEY: Joi.string().required(),
+        MAILGUN_DOMAIN: Joi.string().required(),
+        MAILGUN_FROM_EMAIL: Joi.string().required(),       
+      }),      
     }),
     GraphQLModule.forRoot({
       installSubscriptionHandlers:true,
@@ -38,10 +56,20 @@ import { ConfigModule } from '@nestjs/config';
         //synchronize: process.env.NODE_ENV !=="production",
         synchronize: true,
         logging: process.env.NODE_ENV !== "production",
-        entities: [],
+        entities: [User, Verification],
       }
     ),
     UsersModule,
+    AuthModule,
+    JwtModule.forRoot({
+      privateKey:process.env.PRIVATE_KEY,
+    }),
+    CommonModule,
+    MailModule.forRoot({
+      apiKey:process.env.MAILGUN_API_KEY,
+      domain:process.env.MAILGUN_DOMAIN,
+      fromEmail:process.env.MAILGUN_FROM_EMAIL,
+    }), 
   ],
   controllers: [],
   providers: [],
